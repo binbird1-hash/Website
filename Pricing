@@ -1,0 +1,121 @@
+import wixLocation from 'wix-location';
+import wixWindow from 'wix-window';
+
+$w.onReady(() => {
+  const isMobile = wixWindow.formFactor === "Mobile";
+
+  // Toggle visibility
+  safeCollapse("#section2");
+  safeExpand("#section1");
+  if (isMobile) {
+    safeExpand("#section2");
+    safeCollapse("#section1");
+  }
+
+  // ===============================
+  // DESKTOP LOGIC
+  // ===============================
+  if (!isMobile) {
+    $w('#billingSwitch').checked = true;
+
+    updateDesktopPrices();
+
+    $w('#billingSwitch').onChange(() => {
+      updateDesktopPrices();
+    });
+
+    $w("#starterBtn").onClick(() => {
+      const billing = $w('#billingSwitch').checked ? 'quarterly' : 'monthly';
+      wixLocation.to(`/signup?plan=Starter&billing=${billing}`);
+    });
+
+    $w("#premiumBtn").onClick(() => {
+      const billing = $w('#billingSwitch').checked ? 'quarterly' : 'monthly';
+      wixLocation.to(`/signup?plan=Premium&billing=${billing}`);
+    });
+
+    $w("#businessBtn").onClick(() => {
+      const billing = $w('#billingSwitch').checked ? 'quarterly' : 'monthly';
+      wixLocation.to(`/signup?plan=Business&billing=${billing}`);
+    });
+
+    function updateDesktopPrices() {
+      const isQuarterly = $w('#billingSwitch').checked;
+
+      $w('#starterPriceText').text = isQuarterly ? '$39 Starter' : '$49 Starter';
+      $w('#premiumPriceText').text = isQuarterly ? '$49 Premium' : '$59 Premium';
+      $w('#businessPriceText').text = isQuarterly ? '$59 Business' : '$69 Business';
+
+      const note = isQuarterly
+        ? 'Per property/month, billed quarterly*​'
+        : 'Per property/month, billed monthly*​';
+
+      $w('#starterNoteText').text = note;
+      $w('#premiumNoteText').text = note;
+      $w('#businessNoteText').text = note;
+
+      $w('#billingTypeText').text = isQuarterly ? 'Quarterly Discount' : 'Monthly Subscription';
+    }
+  }
+
+  // ===============================
+  // MOBILE LOGIC
+  // ===============================
+  if (isMobile) {
+    $w('#mobileBillingSwitch').checked = true;
+
+    updateMobilePrices();
+
+    $w('#mobileBillingSwitch').onChange(() => {
+      updateMobilePrices();
+    });
+
+    $w("#mobileStarterBtn").onClick(() => {
+      const billing = $w('#mobileBillingSwitch').checked ? 'quarterly' : 'monthly';
+      wixLocation.to(`/signup?plan=Starter&billing=${billing}`);
+    });
+
+    $w("#mobilePremiumBtn").onClick(() => {
+      const billing = $w('#mobileBillingSwitch').checked ? 'quarterly' : 'monthly';
+      wixLocation.to(`/signup?plan=Premium&billing=${billing}`);
+    });
+
+    $w("#mobileBusinessBtn").onClick(() => {
+      const billing = $w('#mobileBillingSwitch').checked ? 'quarterly' : 'monthly';
+      wixLocation.to(`/signup?plan=Business&billing=${billing}`);
+    });
+
+    function updateMobilePrices() {
+      const isQuarterly = $w('#mobileBillingSwitch').checked;
+
+      $w('#mobileStarterPriceText').text = isQuarterly ? '$39 Starter' : '$49 Starter';
+      $w('#mobilePremiumPriceText').text = isQuarterly ? '$49 Premium' : '$59 Premium';
+      $w('#mobileBusinessPriceText').text = isQuarterly ? '$59 Business' : '$69 Business';
+
+      const note = isQuarterly
+        ? 'Per property/month, billed quarterly*​'
+        : 'Per property/month, billed monthly*​';
+
+      $w('#mobileStarterNoteText').text = note;
+      $w('#mobilePremiumNoteText').text = note;
+      $w('#mobileBusinessNoteText').text = note;
+
+      $w('#mobileBillingTypeText').text = isQuarterly ? 'Quarterly Discount' : 'Monthly Subscription';
+    }
+  }
+});
+
+// ======= Helpers =======
+function safeCollapse(id) {
+  const el = $w(id);
+  if (el && typeof el.collapse === 'function') {
+    el.collapse();
+  }
+}
+
+function safeExpand(id) {
+  const el = $w(id);
+  if (el && typeof el.expand === 'function') {
+    el.expand();
+  }
+}
