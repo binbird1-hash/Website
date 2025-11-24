@@ -1,0 +1,168 @@
+import wixLocation from 'wix-location';
+import wixWindow from 'wix-window';
+
+$w.onReady(function () {
+  const isMobile = wixWindow.formFactor === "Mobile";
+
+  safeCollapse("#section8");
+  if (isMobile) {
+    safeExpand("#section8");
+    setupMobilePricingSwitch();
+  } else {
+    setupDesktopPricingSwitch();
+  }
+
+  // === Multi-Audience Button Group Logic ===
+  const stateButtonGroups = {
+    oneProperty: ["onePropertyButton1", "onePropertyButton2", "onePropertyButton3", "onePropertyButton4"],
+    vacRentals: ["vacRentalButton1", "vacRentalButton2", "vacRentalButton3", "vacRentalButton4"],
+    propManagers: ["propManagersButton1", "propManagersButton2", "propManagersButton3", "propManagersButton4"],
+    pubWorks: ["pubWorksButton1", "pubWorksButton2", "pubWorksButton3", "pubWorksButton4"],
+  };
+
+  const activeFill = "#3E3E3E";
+  const activeTextColor = "#ffffff";
+  const inactiveFill = "#ffffff";
+  const inactiveTextColor = "#000000";
+  let activeButtonId = "onePropertyButton1";
+
+  function setActiveButton(clickedButtonId) {
+    let activeGroup = Object.entries(stateButtonGroups).find(([_, ids]) =>
+      ids.includes(clickedButtonId)
+    )?.[0];
+
+    Object.entries(stateButtonGroups).forEach(([group, ids]) => {
+      const isActiveGroup = group === activeGroup;
+      ids.forEach(id => {
+        const btn = $w(`#${id}`);
+        if (btn) {
+          btn.style.backgroundColor = isActiveGroup ? activeFill : inactiveFill;
+          btn.style.color = isActiveGroup ? activeTextColor : inactiveTextColor;
+        }
+      });
+    });
+
+    activeButtonId = clickedButtonId;
+  }
+
+  setActiveButton(activeButtonId);
+
+  Object.entries(stateButtonGroups).forEach(([state, buttons]) => {
+    buttons.forEach(buttonId => {
+      $w(`#${buttonId}`).onClick(() => {
+        if (!isMobile) {
+          $w("#multiAudienceBox").changeState(state);
+        }
+        setActiveButton(buttonId);
+      });
+    });
+  });
+});
+
+function setupDesktopPricingSwitch() {
+  const $switch = $w('#quarterlySwitch');
+  if (!$switch || typeof $switch.onChange !== 'function') return;
+
+  $switch.checked = true;
+  $switch.enable();
+
+  function updateTexts() {
+    const isQuarterly = $switch.checked;
+    const prices = {
+      Starter: isQuarterly ? '$29 Starter' : '$39 Starter',
+      Premium: isQuarterly ? '$39 Premium' : '$49 Premium',
+      Business: isQuarterly ? '$49 Business' : '$59 Business',
+    };
+    const note = isQuarterly
+      ? 'Per property/month, billed quarterly*​'
+      : 'Per property/month, billed monthly*​';
+
+    $w('#starterPriceText').text = prices.Starter;
+    $w('#premiumPriceText').text = prices.Premium;
+    $w('#businessPriceText').text = prices.Business;
+
+    $w('#starterNoteText').text = note;
+    $w('#premiumNoteText').text = note;
+    $w('#businessNoteText').text = note;
+  }
+
+  updateTexts();
+
+  $switch.onChange(updateTexts);
+
+  $w('#starterBtn').onClick(() => {
+    const billing = $switch.checked ? 'quarterly' : 'monthly';
+    wixLocation.to(`/signup?plan=Starter&billing=${billing}`);
+  });
+
+  $w('#premiumBtn').onClick(() => {
+    const billing = $switch.checked ? 'quarterly' : 'monthly';
+    wixLocation.to(`/signup?plan=Premium&billing=${billing}`);
+  });
+
+  $w('#businessBtn').onClick(() => {
+    const billing = $switch.checked ? 'quarterly' : 'monthly';
+    wixLocation.to(`/signup?plan=Business&billing=${billing}`);
+  });
+}
+
+function setupMobilePricingSwitch() {
+  const $switch = $w('#mobileQuarterlySwitch');
+  if (!$switch || typeof $switch.onChange !== 'function') return;
+
+  $switch.checked = true;
+  $switch.enable();
+
+  function updateTexts() {
+    const isQuarterly = $switch.checked;
+    const prices = {
+      Starter: isQuarterly ? '$29 Starter' : '$39 Starter',
+      Premium: isQuarterly ? '$39 Premium' : '$49 Premium',
+      Business: isQuarterly ? '$49 Business' : '$59 Business',
+    };
+    const note = isQuarterly
+      ? 'Per property/month, billed quarterly*​'
+      : 'Per property/month, billed monthly*​';
+
+    $w('#mobileStarterPriceText').text = prices.Starter;
+    $w('#mobilePremiumPriceText').text = prices.Premium;
+    $w('#mobileBusinessPriceText').text = prices.Business;
+
+    $w('#mobileStarterNoteText').text = note;
+    $w('#mobilePremiumNoteText').text = note;
+    $w('#mobileBusinessNoteText').text = note;
+  }
+
+  updateTexts();
+
+  $switch.onChange(updateTexts);
+
+  $w('#mobileStarterBtn').onClick(() => {
+    const billing = $switch.checked ? 'quarterly' : 'monthly';
+    wixLocation.to(`/signup?plan=Starter&billing=${billing}`);
+  });
+
+  $w('#mobilePremiumBtn').onClick(() => {
+    const billing = $switch.checked ? 'quarterly' : 'monthly';
+    wixLocation.to(`/signup?plan=Premium&billing=${billing}`);
+  });
+
+  $w('#mobileBusinessBtn').onClick(() => {
+    const billing = $switch.checked ? 'quarterly' : 'monthly';
+    wixLocation.to(`/signup?plan=Business&billing=${billing}`);
+  });
+}
+
+function safeCollapse(id) {
+  const el = $w(id);
+  if (el && typeof el.collapse === 'function') {
+    el.collapse();
+  }
+}
+
+function safeExpand(id) {
+  const el = $w(id);
+  if (el && typeof el.expand === 'function') {
+    el.expand();
+  }
+}
