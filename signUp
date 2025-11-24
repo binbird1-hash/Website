@@ -1,0 +1,182 @@
+import wixLocation from 'wix-location';
+import wixUsers from 'wix-users';
+import wixData from 'wix-data';
+
+$w.onReady(async () => {
+  const query = wixLocation.query;
+
+  // 🌐 Preselect plan and billing from URL
+  if (query.plan) $w("#planOptions").value = query.plan;
+
+  if (query.billing) {
+    const isMonthly = query.billing.toLowerCase() === "monthly";
+    $w("#monthlySwitch").checked = isMonthly;
+  }
+
+  updatePlanDisplay();
+
+  // 🔄 Auto-fill contact fields if user is logged in
+  const user = wixUsers.currentUser;
+  if (user.loggedIn) {
+    try {
+      const result = await wixData.query("ClientData")
+        .eq("memberId", user.id)
+        .limit(1)
+        .find();
+
+      const client = result.items[0];
+      if (client) {
+        $w("#firstName").value = client.firstName || "";
+        $w("#lastName").value = client.lastName || "";
+        $w("#emailAddress").value = client.emailAddress || "";
+        $w("#mobileNumber").value = client.mobileNumber || "";
+
+        ["#firstName", "#lastName", "#emailAddress", "#mobileNumber"].forEach(id => {
+          $w(id).readOnly = false;
+        });
+      }
+    } catch (err) {
+      console.error("Error loading client data:", err);
+    }
+  }
+
+  // 🧩 Navigation buttons
+  $w("#nextbutton1").onClick(() => {
+    if (validateStep1()) $w("#registrationForm").changeState("serviceAddress");
+  });
+
+  $w("#nextButton2").onClick(() => {
+    if (validateStep2()) $w("#registrationForm").changeState("propertyInformation");
+  });
+
+  $w("#backButton1").onClick(() => {
+    $w("#registrationForm").changeState("contactInformation");
+  });
+
+  $w("#backButton2").onClick(() => {
+    $w("#registrationForm").changeState("serviceAddress");
+  });
+
+  // ✅ Submit
+  $w("#submitButton").onClick(async () => {
+    if (!validateStep3()) return;
+
+    const user = wixUsers.currentUser;
+    if (!user.loggedIn) {
+      try {
+        await wixUsers.promptLogin();
+        console.log("User logged in");
+      } catch (err) {
+        console.warn("Login cancelled.");
+        return;
+      }
+    }
+
+    const payload = {
+      firstName: $w("#firstName").value,
+      lastName: $w("#lastName").value,
+      emailAddress: $w("#emailAddress").value,
+      mobileNumber: $w("#mobileNumber").value,
+      smsSwitch: $w("#smsSwitch").checked,
+      businessSwitch: $w("#businessSwitch").checked,
+
+      address1: $w("#address1").value,
+      address2: $w("#address2").value,
+      suburb: $w("#suburb").value,
+      state: $w("#state").value,
+      postalCode: $w("#postalCode").value,
+      propertyType: $w("#propertyType").value,
+
+      planOption: $w("#planOptions").value,
+      monthlyBilling: $w("#monthlySwitch").checked,
+      productSummary: $w("#plan").text,
+      billingStartDate: $w("#billingStartDate").text,
+      monthlyRate: $w("#monthlyRate").text,
+      specialInstructions: $w("#specialInstructions").value,
+      title: `${$w("#address2").value}, ${$w("#address1").value}, ${$w("#suburb").value}, ${$w("#state").value} ${$w("#postalCode").value}`,
+      propertyName: "Name me!",
+      memberId: user.id
+    };
+
+    try {
+      const userEmail = await user.getEmail();
+      payload.ownerEmail = userEmail;
+    } catch (err) {
+      console.error("Error fetching user email:", err);
+    }
+
+    try {
+      await wixData.insert("ClientData", payload);
+      console.log("Saved to ClientData");
+    } catch (error) {
+      console.error("CMS insert error:", error);
+    } finally {
+      $w("#registrationForm").changeState("successPage");
+      $w("#loadingSpinner").show();
+      $w("#successMessage").hide();
+
+      setTimeout(() => {
+        $w("#loadingSpinner").hide();
+        $w("#successMessage").show();
+      }, 5000);
+    }
+  });
+
+  // Plan & Billing Price Display
+  $w("#planOptions").onChange(updatePlanDisplay);
+  $w("#monthlySwitch").onChange(updatePlanDisplay);
+});
+
+// ========== VALIDATIONS ==========
+
+function validateStep1() {
+  const fields = ["#firstName", "#lastName", "#emailAddress", "#mobileNumber"];
+  return fields.every(id => validateField(id));
+}
+
+function validateStep2() {
+  const fields = ["#address1", "#address2", "#suburb", "#state", "#postalCode", "#propertyType"];
+  return fields.every(id => validateField(id));
+}
+
+function validateStep3() {
+  const fields = ["#specialInstructions"];
+  return fields.every(id => validateField(id));
+}
+
+function validateField(id) {
+  const field = $w(id);
+  const val = field.value;
+  const valid = val && val !== "Select an option";
+  field.style.borderColor = valid ? "#c4c4c4" : "red";
+  return valid;
+}
+
+// ========== PLAN DISPLAY ==========
+
+const prices = {
+  Starter: { monthly: 49, quarterly: 39 },
+  Premium: { monthly: 59, quarterly: 49 },
+  Business: { monthly: 69, quarterly: 59 }
+};
+
+function updatePlanDisplay() {
+  const plan = $w("#planOptions").value;
+  const isMonthly = $w("#monthlySwitch").checked;
+
+  if (!plan || !prices[plan]) return;
+
+  const rate = isMonthly ? prices[plan].monthly : prices[plan].quarterly;
+  const label = `$${rate}/month`;
+  const billingType = isMonthly ? "Monthly" : "Quarterly";
+
+  $w("#plan").text = `Service ${plan} Plan | Billed ${billingType} (${label})`;
+  $w("#monthlyRate").text = `$${rate.toFixed(2)} / month`;
+
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() + 14);
+  const formatted = startDate.toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric"
+  });
+  $w("#billingStartDate").text = formatted;
+}
